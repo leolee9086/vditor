@@ -1,0 +1,27 @@
+# Kinship Vditor fork
+
+本分支在 Vditor 上游提交 `3a0c64cf97345c2b8a0e1d6d53abbc787d53988c` 上开发，保留原 MIT 许可和作者信息。
+
+源码仓库：https://github.com/leolee9086/vditor 。开发分支：`kinship/section-adapter`。Kinship 主仓库固定本分支的具体提交，而不是浮动跟随分支。
+
+## 本次修改
+
+在源编辑模式增加 `getFileText()` 和 `setFileText(text)`。前者直接读取源文本，不补末尾换行、不转换 NBSP。后者装入已提交的文本，不产生 input 回调，并重置本地撤销历史；远端整区段装载不会被误当成本地编辑。其他编辑模式调用这两个方法会抛错，避免将 DOM 序列化冒充原文。
+
+这里的文件表示正文中的一个文本区段，不要求对应磁盘文件。文件句柄和文章内序号由使用方的基础适配器接入；本 fork 不依赖 Kinship 的 UUID、工作区、版本、数据接口、命令路由或布局模块。
+
+当前修改面向整区段保存模式，不声明具备块内 CRDT。完整块内 CRDT 是另一种需要独立完成的适配器模式，没有部分协作的中间声明。
+
+## 构建与验证
+
+使用 Node.js 与 pnpm。仓库提交了 pnpm 锁文件，执行：
+
+```sh
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm run build
+pnpm pack --pack-destination /path/to/kinship/vendor
+```
+
+安装阶段忽略 Puppeteer 下载脚本不影响 Webpack 构建。构建输出包含运行时、样式、声明及所需浏览器资源。Kinship 依赖打包产物时必须同时记录本 fork 的源码 SHA 和锁文件中的产物完整性摘要。
+
+构建通过只证明源码可编译。使用方还需实际验证无编辑读写保留末尾空行和 NBSP、装载不触发 input、源模式下的 Undo、中文输入、整段保存与冲突处理。没有经过验证的行为不能记为完成。

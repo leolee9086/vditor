@@ -1,6 +1,6 @@
 {
     "name": "vditor",
-    "version": "4.0.1",
+    "version": "4.0.1-kinship.1",
     "description": "♏ 易于使用的 Markdown 编辑器，为适配不同的应用场景而生",
     "author": "Vanessa <v@b3log.org> (http://vanessa.b3log.org)",
     "homepage": "https://b3log.org/vditor",
@@ -8,6 +8,7 @@
     "main": "dist/index.js",
     "funding": "https://ld246.com/sponsor",
     "files": [
+        "KINSHIP.md",
         "dist/*",
         "src/index.ts",
         "src/method.ts",
@@ -61,7 +62,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git://github.com/Vanessa219/vditor.git"
+        "url": "https://github.com/leolee9086/vditor.git"
     },
     "bugs": {
         "url": "https://github.com/Vanessa219/vditor/issues"

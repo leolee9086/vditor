@@ -342,6 +342,31 @@ class Vditor extends VditorMethod {
         execAfterRender(this.vditor);
     }
 
+    /**
+     * Kinship 文件适配：源文本保持字节意义，不补末尾换行或替换 NBSP。
+     * 仅在源编辑模式提供，避免把 DOM 序列化冒充无损文件读取。
+     */
+    public getFileText(): string {
+        if (this.vditor.currentMode !== "sv") {
+            throw new Error("Exact file text is only available in source mode");
+        }
+        return this.vditor.sv.element.value;
+    }
+
+    /** 装入已提交文件版本：不发 input，不把远端装载加入本地撤销历史。 */
+    public setFileText(text: string): void {
+        if (this.vditor.currentMode !== "sv") {
+            throw new Error("Exact file text is only available in source mode");
+        }
+        this.vditor.sv.element.value = text;
+        this.clearStack();
+        processSVAfterRender(this.vditor, {
+            enableAddUndoStack: false,
+            enableHint: false,
+            enableInput: false,
+        });
+    }
+
     /** 设置编辑器内容 */
     public setValue(markdown: string, clearStack = false) {
         if (this.vditor.currentMode === "sv") {
