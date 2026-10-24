@@ -1,5 +1,5 @@
 import {isCtrl} from "../util/compatibility";
-import {processAfterRender} from "./process";
+import {processIndent} from "./process";
 
 export const processKeydown = (vditor: IVditor, event: KeyboardEvent) => {
     vditor.sv.composingLock = event.isComposing;
@@ -16,20 +16,7 @@ export const processKeydown = (vditor: IVditor, event: KeyboardEvent) => {
         return false;
     }
 
-    const element = vditor.sv.element;
-    const start = element.selectionStart;
-    const end = element.selectionEnd;
-    if (event.shiftKey) {
-        const lineStart = element.value.lastIndexOf("\n", start - 1) + 1;
-        const indentation = element.value.substring(lineStart, start).match(/^(\t| {1,4})/);
-        if (indentation) {
-            element.setRangeText("", lineStart, lineStart + indentation[0].length, "end");
-            element.setSelectionRange(start - indentation[0].length, end - indentation[0].length);
-        }
-    } else {
-        element.setRangeText(vditor.options.tab, start, end, "end");
-    }
-    processAfterRender(vditor);
+    processIndent(vditor, event.shiftKey);
     event.preventDefault();
     return true;
 };

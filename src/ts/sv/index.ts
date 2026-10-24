@@ -53,7 +53,21 @@ class Editor {
             }
         });
 
+        // 移动端原生历史手势也使用编辑器撤销栈，避免与格式命令形成两套撤销状态。
+        this.element.addEventListener("beforeinput", (event: InputEvent) => {
+            if (event.inputType === "historyUndo" || event.inputType === "historyRedo") {
+                if (event.cancelable && !this.composingLock) {
+                    event.preventDefault();
+                    if (event.inputType === "historyUndo") vditor.undo.undo(vditor);
+                    else vditor.undo.redo(vditor);
+                }
+                return;
+            }
+        });
+
         this.element.addEventListener("compositionstart", () => {
+            clearTimeout(this.processTimeoutId);
+            vditor.undo.addToUndoStack(vditor);
             this.composingLock = true;
         });
 

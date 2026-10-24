@@ -7,6 +7,7 @@ import {highlightToolbar} from "../util/highlightToolbar";
 import {processCodeRender} from "../util/processCode";
 import {setRangeByWbr, setSelectionFocus} from "../util/selection";
 import {renderToc} from "../util/toc";
+import {SourceHistory, sourceSnapshot, type SourceSnapshot} from "../sv/sourceHistory";
 
 interface IUndo {
     hasUndo: boolean;
@@ -21,6 +22,7 @@ class Undo {
     private wysiwyg: IUndo;
     private ir: IUndo;
     private sv: IUndo;
+    private source = new SourceHistory(this.stackSize);
 
     constructor() {
         this.resetStack();
@@ -30,11 +32,20 @@ class Undo {
 
     public clearStack(vditor: IVditor) {
         this.resetStack();
+        clearTimeout(vditor.sv.processTimeoutId);
+        this.source.reset(sourceSnapshot(vditor.sv.element));
         this.resetIcon(vditor);
     }
 
     public resetIcon(vditor: IVditor) {
         if (!vditor.toolbar) {
+            return;
+        }
+
+        if (vditor.currentMode === "sv") {
+            const elements = vditor.toolbar.elements;
+            (this.source.canUndo ? enableToolbar : disableToolbar)(elements, ["undo"]);
+            (this.source.canRedo ? enableToolbar : disableToolbar)(elements, ["redo"]);
             return;
         }
 
@@ -56,6 +67,15 @@ class Undo {
             vditor[vditor.currentMode].element.getAttribute("contenteditable") === "false") {
             return;
         }
+        if (vditor.currentMode === "sv") {
+            if (vditor.sv.composingLock) return;
+            clearTimeout(vditor.sv.processTimeoutId);
+            // 将尚未到延时的输入收进当前状态，随后只撤销一个文本步骤。
+            this.source.record(sourceSnapshot(vditor.sv.element));
+            const state = this.source.undo();
+            if (state) this.renderSource(vditor, state);
+            return;
+        }
         if (this[vditor.currentMode].undoStack.length < 2) {
             return;
         }
@@ -75,6 +95,14 @@ class Undo {
             vditor[vditor.currentMode].element.getAttribute("contenteditable") === "false") {
             return;
         }
+        if (vditor.currentMode === "sv") {
+            if (vditor.sv.composingLock) return;
+            clearTimeout(vditor.sv.processTimeoutId);
+            this.source.record(sourceSnapshot(vditor.sv.element));
+            const state = this.source.redo();
+            if (state) this.renderSource(vditor, state);
+            return;
+        }
         const state = this[vditor.currentMode].redoStack.pop();
         if (!state) {
             return;
@@ -84,7 +112,11 @@ class Undo {
     }
 
     public recordFirstPosition(vditor: IVditor, event: KeyboardEvent) {
-        if (vditor.currentMode !== "sv" && getSelection().rangeCount === 0) {
+        if (vditor.currentMode === "sv") {
+            this.source.rememberSelection(sourceSnapshot(vditor.sv.element));
+            return;
+        }
+        if (getSelection().rangeCount === 0) {
             return;
         }
         if (this[vditor.currentMode].undoStack.length !== 1 || this[vditor.currentMode].undoStack[0].length === 0 ||
@@ -111,6 +143,12 @@ class Undo {
     }
 
     public addToUndoStack(vditor: IVditor) {
+        if (vditor.currentMode === "sv") {
+            if (vditor.sv.composingLock) return;
+            this.source.record(sourceSnapshot(vditor.sv.element));
+            this.resetIcon(vditor);
+            return;
+        }
         // afterRenderEvent.ts 已经 debounce
         const text = this.addCaret(vditor, true);
         const diff = this.dmp.diff_main(text, this[vditor.currentMode].lastText, true);
@@ -132,6 +170,16 @@ class Undo {
         if (this[vditor.currentMode].undoStack.length > 1) {
             enableToolbar(vditor.toolbar.elements, ["undo"]);
         }
+    }
+
+    private renderSource(vditor: IVditor, state: SourceSnapshot) {
+        const element = vditor.sv.element;
+        element.value = state.text;
+        element.focus();
+        element.setSelectionRange(state.start, state.end, state.direction);
+        hidePanel(vditor, ["hint"]);
+        execAfterRender(vditor, {enableAddUndoStack: false, enableHint: false, enableInput: true});
+        this.resetIcon(vditor);
     }
 
     private renderDiff(state: DiffMatchPatch.patch_obj[], vditor: IVditor, isRedo: boolean = false) {
@@ -199,6 +247,13 @@ class Undo {
             .forEach((item: HTMLElement) => {
                 processCodeRender(item, vditor);
             });
+
+        if (vditor.currentMode === "sv") {
+            const elements = vditor.toolbar.elements;
+            (this.source.canUndo ? enableToolbar : disableToolbar)(elements, ["undo"]);
+            (this.source.canRedo ? enableToolbar : disableToolbar)(elements, ["redo"]);
+            return;
+        }
 
         if (this[vditor.currentMode].undoStack.length > 1) {
             enableToolbar(vditor.toolbar.elements, ["undo"]);

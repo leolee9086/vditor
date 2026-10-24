@@ -123,6 +123,9 @@ export const scrollCenter = (vditor: IVditor) => {
 
 export const hotkeyEvent = (vditor: IVditor, editorElement: HTMLElement) => {
     editorElement.addEventListener("keydown", (event: KeyboardEvent & { target: HTMLElement }) => {
+        // 输入法候选键不能继续触发标题、格式、撤销或宿主快捷键。
+        if (event.isComposing || event.keyCode === 229 ||
+            (vditor.currentMode === "sv" && vditor.sv.composingLock)) return;
         if (!event.isComposing && vditor.options.keydown) {
             vditor.options.keydown(event);
         }
@@ -154,6 +157,15 @@ export const hotkeyEvent = (vditor: IVditor, editorElement: HTMLElement) => {
 
         if (vditor.options.ctrlEnter && matchHotKey("⌘Enter", event)) {
             vditor.options.ctrlEnter(getMarkdown(vditor));
+            event.preventDefault();
+            return;
+        }
+
+        // 源模式直接处理撤销，不能让工具栏的延迟禁用状态吞掉刚输入后的 Ctrl+Z。
+        if (vditor.currentMode === "sv" &&
+            (matchHotKey("⌘Z", event) || matchHotKey("⇧⌘Z", event) || matchHotKey("⌘Y", event))) {
+            if (matchHotKey("⌘Z", event)) vditor.undo.undo(vditor);
+            else vditor.undo.redo(vditor);
             event.preventDefault();
             return;
         }

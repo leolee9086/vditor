@@ -1,5 +1,19 @@
 import {getMarkdown} from "../markdown/getMarkdown";
 import {accessLocalStorage} from "../util/compatibility";
+import {transformLines, type LineCommand} from "./lineCommands";
+
+const beginCommand = (vditor: IVditor) => {
+    if (vditor.sv.composingLock || vditor.sv.element.disabled) return false;
+    clearTimeout(vditor.sv.processTimeoutId);
+    vditor.undo.addToUndoStack(vditor);
+    return true;
+};
+
+const finishCommand = (vditor: IVditor) => {
+    vditor.sv.element.focus();
+    processAfterRender(vditor, {enableAddUndoStack: false, enableHint: false, enableInput: true});
+    vditor.undo.addToUndoStack(vditor);
+};
 
 export const replaceSelection = (vditor: IVditor, text: string, selectionMode: SelectionMode = "end") => {
     const element = vditor.sv.element;
@@ -47,53 +61,55 @@ export const processAfterRender = (vditor: IVditor, options = {
 };
 
 export const processHeading = (vditor: IVditor, value: string) => {
+    if (!beginCommand(vditor)) return;
     const element = vditor.sv.element;
-    const lineStart = element.value.lastIndexOf("\n", element.selectionStart - 1) + 1;
-    const lineEndIndex = element.value.indexOf("\n", element.selectionEnd);
-    const lineEnd = lineEndIndex === -1 ? element.value.length : lineEndIndex;
-    const selectedLines = element.value.substring(lineStart, lineEnd);
-    const heading = value ? value + selectedLines.replace(/^#{1,6}\s+/, "") : selectedLines.replace(/^#{1,6}\s+/, "");
-    element.setRangeText(heading, lineStart, lineEnd, "select");
-    element.focus();
-    processAfterRender(vditor);
+    const direction = element.selectionDirection;
+    const change = transformLines(element.value, element.selectionStart, element.selectionEnd, "heading", value);
+    element.value = change.text;
+    element.setSelectionRange(change.start, change.end, direction);
+    finishCommand(vditor);
 };
 
 export const processToolbar = (vditor: IVditor, actionBtn: Element, prefix: string, suffix: string) => {
+    if (!beginCommand(vditor)) return;
     const element = vditor.sv.element;
+    const direction = element.selectionDirection;
     const commandName = actionBtn.getAttribute("data-type");
     const start = element.selectionStart;
     const end = element.selectionEnd;
-    const selectedText = element.value.substring(start, end);
-    let text = "";
-    let selectionStart = start + prefix.length;
-    let selectionEnd = selectionStart + selectedText.length;
-
-    if (commandName === "check" || commandName === "list" || commandName === "ordered-list" ||
-        commandName === "quote") {
-        const lineStart = element.value.lastIndexOf("\n", start - 1) + 1;
-        const lineEndIndex = element.value.indexOf("\n", end);
-        const lineEnd = lineEndIndex === -1 ? element.value.length : lineEndIndex;
-        const lines = element.value.substring(lineStart, lineEnd);
-        text = lines.split("\n").map((line) => prefix + line).join("\n");
-        element.setRangeText(text, lineStart, lineEnd, "select");
+    if (commandName === "indent" || commandName === "outdent") {
+        const change = transformLines(element.value, start, end, commandName, "", vditor.options.tab);
+        element.value = change.text;
+        element.setSelectionRange(change.start, change.end, direction);
+    } else if (commandName === "list" || commandName === "ordered-list" || commandName === "check" || commandName === "quote") {
+        const change = transformLines(element.value, start, end, commandName as LineCommand, prefix, vditor.options.tab);
+        element.value = change.text;
+        element.setSelectionRange(change.start, change.end, direction);
     } else if (commandName === "line") {
-        text = `${start === 0 ? "" : "\n\n"}${prefix}\n`;
+        const text = `${start === 0 ? "" : "\n\n"}${prefix}\n`;
         element.setRangeText(text, start, end, "end");
     } else if (commandName === "code") {
-        text = `${prefix}\n${selectedText}${suffix}`;
-        element.setRangeText(text, start, end, "end");
-        selectionStart = start + prefix.length + 1;
-        selectionEnd = selectionStart + selectedText.length;
-        element.setSelectionRange(selectionStart, selectionEnd);
+        const selectedText = element.value.substring(start, end);
+        element.setRangeText(`${prefix}\n${selectedText}${suffix}`, start, end, "end");
+        const selectionStart = start + prefix.length + 1;
+        element.setSelectionRange(selectionStart, selectionStart + selectedText.length);
     } else if (commandName === "table") {
-        text = `${start === 0 ? "" : "\n\n"}${prefix}${suffix}`;
-        element.setRangeText(text, start, end, "end");
+        element.setRangeText(`${start === 0 ? "" : "\n\n"}${prefix}${suffix}`, start, end, "end");
     } else {
-        text = `${prefix}${selectedText}${suffix}`;
-        element.setRangeText(text, start, end, "end");
-        element.setSelectionRange(selectionStart, selectionEnd);
+        const selectedText = element.value.substring(start, end);
+        const selectionStart = start + prefix.length;
+        element.setRangeText(`${prefix}${selectedText}${suffix}`, start, end, "end");
+        element.setSelectionRange(selectionStart, selectionStart + selectedText.length);
     }
-
-    element.focus();
-    processAfterRender(vditor);
+    finishCommand(vditor);
+};
+export const processIndent = (vditor: IVditor, outdent: boolean) => {
+    if (!beginCommand(vditor)) return;
+    const element = vditor.sv.element;
+    const direction = element.selectionDirection;
+    const change = transformLines(element.value, element.selectionStart, element.selectionEnd,
+        outdent ? "outdent" : "indent", "", vditor.options.tab);
+    element.value = change.text;
+    element.setSelectionRange(change.start, change.end, direction);
+    finishCommand(vditor);
 };

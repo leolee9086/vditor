@@ -2,6 +2,8 @@ import Vditor from '../src/index'
 import '../src/assets/less/index.less'
 
 window.vditorTest = new Vditor('vditorTest', {
+  // Fork 测试必须自托管资源，不请求尚未发布的版本 CDN。
+  cdn: window.location.origin,
   tab: '\t',
   cache: false,
   height: 200,

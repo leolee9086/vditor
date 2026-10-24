@@ -1,6 +1,8 @@
 import puppeteer, {Page} from "puppeteer";
 
 const getExecutablePath = () => {
+    // CI 或本机已有浏览器可显式复用，测试不强制额外下载另一套 Chrome。
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
     try {
         return puppeteer.executablePath();
     } catch (error) {

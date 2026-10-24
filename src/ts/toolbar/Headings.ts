@@ -38,7 +38,7 @@ export class Headings extends MenuItem {
             if (actionBtn.classList.contains(Constants.CLASS_MENU_DISABLED)) {
                 return;
             }
-            actionBtn.blur();
+            if (!vditor.options.toolbarConfig.revealOnFocus) actionBtn.blur();
             if (actionBtn.classList.contains("vditor-menu--current")) {
                 if (vditor.currentMode === "wysiwyg") {
                     removeHeading(vditor);

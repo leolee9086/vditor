@@ -105,7 +105,15 @@ export class Toolbar {
         // 焦点属于整个编辑器，进入工具栏或其弹层时仍保持展开。
         // inert 让折叠按钮同时退出 Tab 顺序及辅助技术树，避免不可见控件获焦。
         const sync = () => this.element.toggleAttribute("inert", !root.contains(document.activeElement));
-        const blur = () => queueMicrotask(sync);
+        const blur = (event: FocusEvent) => {
+            // 浏览器在 focusout 与 focusin 之间可能执行微任务，不能把内部 Tab 目标先设为 inert。
+            if (event.relatedTarget instanceof Node && root.contains(event.relatedTarget)) return;
+            queueMicrotask(sync);
+        };
+        // SVG 子节点的默认鼠标行为可能把焦点移到 body，导致 click 前工具栏已折叠。
+        const preserveFocus = (event: MouseEvent) => {
+            if (event.target instanceof Element && event.target.closest("button")) event.preventDefault();
+        };
         // Tab 保留原有正文缩进；Alt+F10 采用常见编辑器约定进入工具栏。
         const keydown = (event: KeyboardEvent) => {
             if (event.isComposing || event.keyCode === 229) return;
@@ -118,10 +126,12 @@ export class Toolbar {
                 vditor[vditor.currentMode].element.focus();
             }
         };
+        this.element.addEventListener("mousedown", preserveFocus);
         root.addEventListener("focusin", sync);
         root.addEventListener("focusout", blur);
         root.addEventListener("keydown", keydown, true);
         this.removeFocusListeners = () => {
+            this.element.removeEventListener("mousedown", preserveFocus);
             root.removeEventListener("focusin", sync);
             root.removeEventListener("focusout", blur);
             root.removeEventListener("keydown", keydown, true);

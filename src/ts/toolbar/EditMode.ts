@@ -101,8 +101,9 @@ export const setEditMode = (vditor: IVditor, type: string, event: Event | string
         });
         vditor.wysiwyg.popover.style.display = "none";
     } else if (type === "sv") {
-        showToolbar(vditor.toolbar.elements, ["both"]);
-        hideToolbar(vditor.toolbar.elements, ["outdent", "indent", "outline", "insert-before", "insert-after"]);
+        showToolbar(vditor.toolbar.elements, ["both", "outdent", "indent"]);
+        enableToolbar(vditor.toolbar.elements, ["outdent", "indent"]);
+        hideToolbar(vditor.toolbar.elements, ["outline", "insert-before", "insert-after"]);
         vditor.wysiwyg.element.parentElement.style.display = "none";
         vditor.ir.element.parentElement.style.display = "none";
         if (vditor.options.preview.mode === "both") {
@@ -117,6 +118,8 @@ export const setEditMode = (vditor: IVditor, type: string, event: Event | string
 
         vditor.currentMode = "sv";
         vditor.sv.element.value = markdownText;
+        // 装载的原文立即成为撤销起点，首次输入不必等待 undoDelay。
+        vditor.undo.addToUndoStack(vditor);
         processSVAfterRender(vditor, {
             enableAddUndoStack: true,
             enableHint: false,
