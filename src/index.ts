@@ -423,6 +423,8 @@ class Vditor extends VditorMethod {
 
     /** 销毁编辑器 */
     public destroy() {
+        this.vditor.toolbar.destroy();
+        this.vditor.element.classList.remove("vditor--focus-toolbar");
         this.vditor.element.innerHTML = this.vditor.originalInnerHTML;
         this.vditor.element.classList.remove("vditor");
         this.vditor.element.removeAttribute("style");

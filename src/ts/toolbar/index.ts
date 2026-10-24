@@ -23,13 +23,14 @@ import {Outline} from "./Outline";
 import {Preview} from "./Preview";
 import {Record} from "./Record";
 import {Redo} from "./Redo";
-import {toggleSubMenu} from "./setToolbar";
+import {hidePanel, toggleSubMenu} from "./setToolbar";
 import {Undo} from "./Undo";
 import {Upload} from "./Upload";
 
 export class Toolbar {
     public elements: { [key: string]: HTMLElement };
     public element: HTMLElement;
+    private removeFocusListeners?: () => void;
 
     constructor(vditor: IVditor) {
         const options = vditor.options;
@@ -56,9 +57,10 @@ export class Toolbar {
             }
         });
 
-        if (vditor.options.toolbarConfig.hide) {
+        if (vditor.options.toolbarConfig.hide && !vditor.options.toolbarConfig.revealOnFocus) {
             this.element.classList.add("vditor-toolbar--hide");
         }
+        this.configureFocus(vditor);
         if (vditor.options.toolbarConfig.pin) {
             this.element.classList.add("vditor-toolbar--pin");
         }
@@ -73,8 +75,10 @@ export class Toolbar {
         vditor.options.toolbarConfig = Object.assign({
             hide: false,
             pin: false,
+            revealOnFocus: false,
         }, options);
-        if (vditor.options.toolbarConfig.hide) {
+        this.configureFocus(vditor);
+        if (vditor.options.toolbarConfig.hide && !vditor.options.toolbarConfig.revealOnFocus) {
             this.element.classList.add("vditor-toolbar--hide");
         } else {
             this.element.classList.remove("vditor-toolbar--hide");
@@ -84,6 +88,50 @@ export class Toolbar {
         } else {
             this.element.classList.remove("vditor-toolbar--pin");
         }
+    }
+
+    private configureFocus(vditor: IVditor) {
+        this.destroy();
+        const root = vditor.element;
+        root.classList.toggle("vditor--focus-toolbar", !!vditor.options.toolbarConfig.revealOnFocus);
+        [vditor.sv.element, vditor.ir.element, vditor.wysiwyg.element].forEach((editor) => {
+            if (vditor.options.toolbarConfig.revealOnFocus) editor.setAttribute("aria-keyshortcuts", "Alt+F10");
+            else editor.removeAttribute("aria-keyshortcuts");
+        });
+        if (!vditor.options.toolbarConfig.revealOnFocus) {
+            this.element.removeAttribute("inert");
+            return;
+        }
+        // 焦点属于整个编辑器，进入工具栏或其弹层时仍保持展开。
+        // inert 让折叠按钮同时退出 Tab 顺序及辅助技术树，避免不可见控件获焦。
+        const sync = () => this.element.toggleAttribute("inert", !root.contains(document.activeElement));
+        const blur = () => queueMicrotask(sync);
+        // Tab 保留原有正文缩进；Alt+F10 采用常见编辑器约定进入工具栏。
+        const keydown = (event: KeyboardEvent) => {
+            if (event.isComposing || event.keyCode === 229) return;
+            if (event.altKey && !event.ctrlKey && !event.metaKey && event.key === "F10") {
+                const button = this.element.querySelector<HTMLButtonElement>("button:not(:disabled):not(.vditor-menu--disabled)");
+                if (button) { event.preventDefault(); event.stopPropagation(); button.focus(); }
+            } else if (event.key === "Escape" && this.element.contains(document.activeElement)) {
+                event.preventDefault(); event.stopPropagation();
+                hidePanel(vditor, ["subToolbar", "hint", "popover"]);
+                vditor[vditor.currentMode].element.focus();
+            }
+        };
+        root.addEventListener("focusin", sync);
+        root.addEventListener("focusout", blur);
+        root.addEventListener("keydown", keydown, true);
+        this.removeFocusListeners = () => {
+            root.removeEventListener("focusin", sync);
+            root.removeEventListener("focusout", blur);
+            root.removeEventListener("keydown", keydown, true);
+        };
+        sync();
+    }
+
+    public destroy() {
+        this.removeFocusListeners?.();
+        this.removeFocusListeners = undefined;
     }
 
     private genItem(vditor: IVditor, menuItem: IMenuItem, index: number) {

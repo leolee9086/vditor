@@ -124,6 +124,7 @@ export class Options {
         toolbarConfig: {
             hide: false,
             pin: false,
+            revealOnFocus: false,
         },
         typewriterMode: false,
         undoDelay: 800,

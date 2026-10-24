@@ -653,6 +653,8 @@ interface IToolbarConfig {
     hide?: boolean;
     /** 是否固定工具栏。默认值: false */
     pin?: boolean;
+    /** 区段进入编辑焦点时展开工具栏；其余时间折叠并退出键盘顺序。默认值: false */
+    revealOnFocus?: boolean;
 }
 
 /** @link https://ld246.com/article/1549638745630#options-comment */
@@ -861,6 +863,7 @@ interface IVditor {
         elements?: {[key: string]: HTMLElement},
         element?: HTMLElement,
         updateConfig(vditor: IVditor, options: IToolbarConfig): void,
+        destroy(): void,
     };
     preview?: {
         element: HTMLElement,

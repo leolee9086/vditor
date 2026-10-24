@@ -164,12 +164,55 @@
   }
 }
 
+// 区段编辑器 opt-in：空闲时不占正文高度；焦点在编辑区/按钮/弹层内始终展开。
+.vditor--focus-toolbar {
+  // 折叠/展开改变高度时，不允许滚动容器滚动锚定把触摸坐标推到编辑区。
+  overflow-anchor: none;
+
+  .vditor-toolbar {
+    height: 0;
+    padding: 0;
+    border-bottom: 0;
+    overflow: hidden;
+    visibility: hidden;
+  }
+
+  .vditor-toolbar__item {
+    padding: 0;
+
+    .vditor-tooltipped {
+      width: 40px;
+      height: 40px;
+
+      &:focus-visible {
+        outline: 2px solid var(--toolbar-icon-hover-color);
+        outline-offset: -3px;
+      }
+    }
+  }
+
+  &:focus-within .vditor-toolbar {
+    height: auto;
+    padding: 0 5px;
+    border-bottom: 1px solid var(--border-color);
+    overflow: visible;
+    visibility: visible;
+  }
+}
+
 @media screen and (max-width: @max-width) {
   .vditor-toolbar__item {
     padding: 0 12px;
   }
   .vditor-panel--left.vditor-panel--arrow:before {
     right: 17px;
+  }
+}
+
+@media (pointer: coarse) {
+  .vditor--focus-toolbar .vditor-toolbar__item .vditor-tooltipped {
+    width: 44px;
+    height: 44px;
   }
 }
 

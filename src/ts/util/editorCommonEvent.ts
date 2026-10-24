@@ -176,10 +176,14 @@ export const hotkeyEvent = (vditor: IVditor, editorElement: HTMLElement) => {
         if (event.key === "Escape") {
             if (vditor.hint.element.style.display === "block") {
                 vditor.hint.element.style.display = "none";
+                event.preventDefault();
             } else if (vditor.options.esc && !event.isComposing) {
                 vditor.options.esc(getMarkdown(vditor));
+                event.preventDefault();
+            } else if (!vditor.options.toolbarConfig.revealOnFocus) {
+                event.preventDefault();
             }
-            event.preventDefault();
+            // 嵌入式焦点工具栏只消费实际处理的 Escape；其余交给宿主模态框。
             return;
         }
 
