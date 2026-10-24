@@ -11,13 +11,12 @@
     "typeRoots": [
       "./node_modules/@types"
     ],
-    "types": [
-      "./types"
-    ],
+    "types": [],
     "declaration": true,
   },
   "include": [
-    "src"
+    "src",
+    "types"
   ],
   "exclude": [
     "node_modules",

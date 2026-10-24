@@ -1,2 +1,4 @@
 allowBuilds:
   puppeteer: false
+minimumReleaseAgeExclude:
+  - calibur-router@0.1.0
