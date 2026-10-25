@@ -15,7 +15,7 @@ export class CodeLanguage extends MenuItem {
         const panel = document.createElement("div"), label = document.createElement("label");
         const input = document.createElement("input"), apply = document.createElement("button");
         const cancel = document.createElement("button"), status = document.createElement("p");
-        panel.className = "vditor-hint vditor-panel--arrow vditor-code-language";
+        panel.className = "vditor-hint vditor-code-language";
         panel.setAttribute("role", "group"); panel.setAttribute("aria-label", title);
         input.type = "text"; input.maxLength = 64; input.autocomplete = "off"; input.spellcheck = false;
         input.setAttribute("aria-label", title);
@@ -23,7 +23,7 @@ export class CodeLanguage extends MenuItem {
         label.append(document.createTextNode(title), input);
         apply.type = "button"; cancel.type = "button";
         apply.textContent = message("code-language-apply", "Apply language");
-        cancel.textContent = message("cancel", "Cancel");
+        cancel.textContent = message("code-language-cancel", "Cancel");
         status.setAttribute("role", "status");
         panel.append(label, apply, cancel, status); this.element.appendChild(panel);
         let composing = false;

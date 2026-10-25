@@ -274,6 +274,11 @@ describe("SV commands through browser input", () => {
             await select(code.indexOf("甲"), code.indexOf("\n```"), "backward");
             await page.tap(button("code-language"));
             expect(await page.$eval(".vditor-code-language input", e => document.activeElement === e)).toBe(true);
+            const popup = await page.$eval(".vditor-code-language", e => { const r = e.getBoundingClientRect();
+                return {left: r.left, right: r.right, width: innerWidth, position: getComputedStyle(e).position}; });
+            expect(popup.position).toBe("fixed");
+            expect(popup.left).toBeGreaterThanOrEqual(0);
+            expect(popup.right).toBeLessThanOrEqual(popup.width);
             await page.$eval(".vditor-code-language input", e => { e.value = "python"; });
             await page.tap(".vditor-code-language button");
             expect(await value()).toBe(code.replace("```js", "```python"));
