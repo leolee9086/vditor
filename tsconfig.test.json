@@ -3,6 +3,7 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "module": "commonjs",
+    "moduleResolution": "node",
     "skipLibCheck": true,
     "target": "es2018",
     "types": [

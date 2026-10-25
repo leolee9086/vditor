@@ -42,7 +42,7 @@ describe("SV commands through browser input", () => {
                     preview: {mode: "editor", delay: 0},
                     tab: "  ",
                     toolbar: ["headings", "undo", "redo", "bold", "italic", "list", "ordered-list",
-                        "check", "outdent", "indent", "quote", "line", "link", "code", "table"],
+                        "check", "task-toggle", "outdent", "indent", "quote", "line", "link", "code", "table"],
                     toolbarConfig: {revealOnFocus: true},
                     undoDelay: 500,
                     value: "",
@@ -183,6 +183,69 @@ describe("SV commands through browser input", () => {
         expect(await value()).toBe(initial);
     });
 
+    test("task completion pointer and shortcut preserve source and backward selection", async () => {
+        const text = "+ [ ] 甲😀\n12) [X] 乙  \n\nliteral <wbr> NBSP\u00a0\n\n";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        await select(0, text.indexOf("literal"), "backward");
+        const beforeSelection = await selection();
+        await page.click(button("task-toggle"));
+        const completed = text.replace("+ [ ]", "+ [x]");
+        expect(await value()).toBe(completed);
+        expect(await selection()).toEqual(beforeSelection);
+        expect(await page.$eval(textarea, e => document.activeElement === e)).toBe(true);
+        await press("Control", "z");
+        expect(await value()).toBe(text);
+        expect(await selection()).toEqual(beforeSelection);
+        await press("Control", "y");
+        expect(await value()).toBe(completed);
+        await press("Control", "Shift", "j");
+        expect(await value()).toBe(text.replace("12) [X]", "12) [ ]"));
+    });
+
+    test("task completion no-op preserves Redo and emits no input", async () => {
+        await page.click(button("bold"));
+        const changed = await value();
+        await press("Control", "z");
+        await page.evaluate(() => { window.sourceCommandInputs = 0; });
+        await page.click(button("task-toggle"));
+        expect(await value()).toBe(initial);
+        expect(await page.evaluate(() => window.sourceCommandInputs)).toBe(0);
+        await press("Control", "y");
+        expect(await value()).toBe(changed);
+    });
+
+    test("task completion works through keyboard toolbar activation and refuses composition or disabled", async () => {
+        const text = "* [ ] task\n";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        await select(6, 6);
+        await press("Alt", "F10");
+        // Tab 到新命令，保留真实键盘焦点路径，而非程序 button.click。
+        for (let i = 0; i < 8; i++) await press("Tab");
+        expect(await page.evaluate(() => document.activeElement.getAttribute("data-type"))).toBe("task-toggle");
+        await press("Enter");
+        expect(await value()).toBe("* [x] task\n");
+        await page.$eval(textarea, e => e.dispatchEvent(new CompositionEvent("compositionstart", {bubbles: true})));
+        await page.$eval(button("task-toggle"), e => e.click());
+        await press("Control", "Shift", "j");
+        expect(await value()).toBe("* [x] task\n");
+        await page.$eval(textarea, e => e.dispatchEvent(new CompositionEvent("compositionend", {bubbles: true})));
+        await page.evaluate(() => window.sourceCommandEditor.disabled());
+        await page.$eval(button("task-toggle"), e => e.click());
+        expect(await value()).toBe("* [x] task\n");
+    });
+
+    test("task completion is hidden outside source mode and returns on mode switch", async () => {
+        await press("Control", "Alt", "Digit7");
+        expect(await page.$eval(button("task-toggle"), e => e.parentElement.style.display)).toBe("none");
+        await page.$eval(button("task-toggle"), e => e.click());
+        // 回源模式并装载精确文件，不能把不可见的新命令留在活动按钮列表里。
+        await page.evaluate(() => {
+            window.sourceCommandEditor.vditor.wysiwyg.element.focus();
+        });
+        await press("Control", "Alt", "Digit9");
+        expect(await page.$eval(button("task-toggle"), e => e.parentElement.style.display)).not.toBe("none");
+    });
+
     test("390px coarse-pointer taps preserve the selection and Undo", async () => {
         await page.setViewport({width: 390, height: 844, isMobile: true, hasTouch: true});
         try {
@@ -200,6 +263,12 @@ describe("SV commands through browser input", () => {
             await page.tap(button("undo"));
             expect(await value()).toBe(initial);
             expect(await selection()).toEqual([0, 11, "forward"]);
+            await page.tap(button("check"));
+            const tasks = await value();
+            await page.tap(button("task-toggle"));
+            expect(await value()).toBe(tasks.replace(/\[ \]/g, "[x]"));
+            await page.tap(button("undo"));
+            expect(await value()).toBe(tasks);
         } finally {
             await page.setViewport({width: 800, height: 600, isMobile: false, hasTouch: false});
         }

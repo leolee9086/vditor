@@ -7,6 +7,7 @@ window.VditorI18n = {
   'both': 'editor & preview',
   'cancelUpload': 'Cancel upload',
   'check': 'Task List',
+  'task-toggle': 'Toggle task completion',
   'close': 'Close',
   'code': 'Code Block',
   'code-theme': 'Code Block Theme Preview',

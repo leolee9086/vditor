@@ -265,6 +265,12 @@ export class Options {
                 tipPosition: "n",
             },
             {
+                hotkey: "⇧⌘J",
+                icon: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15l7 7L27 7l-3-3-12 12-4-4z"></path></svg>',
+                name: "task-toggle",
+                tipPosition: "n",
+            },
+            {
                 hotkey: "⇧⌘I",
                 icon:
                     '<svg><use xlink:href="#vditor-icon-outdent"></use></svg>',

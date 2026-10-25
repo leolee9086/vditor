@@ -1,6 +1,20 @@
 import {getMarkdown} from "../markdown/getMarkdown";
 import {accessLocalStorage} from "../util/compatibility";
 import {transformLines, type LineCommand} from "./lineCommands";
+import {toggleTasks} from "./taskCommands";
+
+/** 完成状态属于编辑器，不要求文件适配器提供任务、UUID 或命令接口。 */
+export const processTaskToggle = (vditor: IVditor) => {
+    const element = vditor.sv.element;
+    if (vditor.currentMode !== "sv" || vditor.sv.composingLock || element.disabled) return;
+    const direction = element.selectionDirection;
+    const change = toggleTasks(element.value, element.selectionStart, element.selectionEnd);
+    // 没有任务时不通知 input，也不打断已有 Redo 分支。
+    if (change.text === element.value || !beginCommand(vditor)) return;
+    element.value = change.text;
+    element.setSelectionRange(change.start, change.end, direction);
+    finishCommand(vditor);
+};
 
 const beginCommand = (vditor: IVditor) => {
     if (vditor.sv.composingLock || vditor.sv.element.disabled) return false;

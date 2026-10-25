@@ -7,6 +7,7 @@ window.VditorI18n = {
   'both': '编辑 & 预览',
   'cancelUpload': '取消上传',
   'check': '任务列表',
+  'task-toggle': '切换任务完成状态',
   'close': '关闭',
   'code': '代码块',
   'code-theme': '代码块主题预览',

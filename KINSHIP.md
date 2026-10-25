@@ -16,6 +16,8 @@
 
 `4.0.1-kinship.3` 将源模式的标题、无序列表、有序列表、任务列表、引用、缩进和反缩进统一为选区覆盖的行变换；重复执行同一行命令会移除对应标记，空行不被误改，有序列表从首项编号递增。Tab/Shift+Tab 与工具栏缩进使用同一变换并保留选区。源模式独立保存精确原文、选区及方向，每条格式命令即时记录前后边界；不把字面 `<wbr>` 当光标标记。会话撤销栈最多保存 50 份快照，不是持久化文件历史；输入法组合期间拒绝格式及撤销，装载原文重置撤销且不产生 input。焦点式工具栏保留 SVG 图标鼠标操作期间的编辑器焦点，标题菜单键盘激活不主动失焦。该模块只处理文本、选区和编辑器本地撤销，不知道主体文件、图谱、UUID 或 CaliburRouter。
 
+`4.0.1-kinship.4` 增加独立的“完成/取消任务”按钮及 Ctrl/Meta+Shift+J：选区中的未完成或混合任务统一完成，全部完成则统一取消；只改任务状态字符，保留列表编号、引用、缩进、字面原文和选区方向。围栏扫描由正式 npm `calibur-router/zod` 入口切分互斥状态，忽略围栏代码内的示例任务。无任务时不产生 input 或破坏 Redo；组合输入和禁用模式拒绝执行。命令只在源模式展示，仍然不依赖文件宿主或图谱。
+
 ## 构建与验证
 
 使用 Node.js 与 pnpm。仓库提交了 pnpm 锁文件，执行：
@@ -28,6 +30,6 @@ pnpm pack --pack-destination /path/to/kinship/vendor
 
 安装阶段忽略 Puppeteer 下载脚本不影响 Webpack 构建。构建输出包含运行时、样式、声明及所需浏览器资源。Kinship 依赖打包产物时必须同时记录本 fork 的源码 SHA 和锁文件中的产物完整性摘要。
 
-浏览器测试先启动 `pnpm run start`（9000 端口），再执行 `pnpm exec jest --runInBand`。可设置 `PUPPETEER_EXECUTABLE_PATH` 复用已安装的 Chrome/Edge；测试 demo 使用本站资源，不请求尚未发布的 fork CDN。源模式专项执行 `pnpm exec jest __test__/sv --runInBand`，覆盖真实指针按钮、键盘菜单、快速撤销、原生历史事件及模拟组合事件；模拟事件不等于真实输入法候选窗验收。
+浏览器测试先启动 `pnpm run start`（9000 端口），再执行 `pnpm test --runInBand`。可设置 `PUPPETEER_EXECUTABLE_PATH` 复用已安装的 Chrome/Edge；测试 demo 使用本站资源，不请求尚未发布的 fork CDN。源模式专项执行 `pnpm exec node --experimental-vm-modules node_modules/jest/bin/jest.js __test__/sv --runInBand`，覆盖真实指针按钮、键盘菜单、快速撤销、原生历史事件及模拟组合事件；模拟事件不等于真实输入法候选窗验收。
 
 构建通过只证明源码可编译。使用方还需实际验证无编辑读写保留末尾空行和 NBSP、装载不触发 input、源模式下的 Undo、中文输入、整段保存与冲突处理。没有经过验证的行为不能记为完成。

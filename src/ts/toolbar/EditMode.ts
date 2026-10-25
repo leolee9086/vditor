@@ -43,6 +43,14 @@ export const setEditMode = (vditor: IVditor, type: string, event: Event | string
     enableToolbar(vditor.toolbar.elements, Constants.EDIT_TOOLBARS);
     removeCurrentToolbar(vditor.toolbar.elements, Constants.EDIT_TOOLBARS);
     disableToolbar(vditor.toolbar.elements, ["outdent", "indent"]);
+    // 任务完成变换只实现源模式，其他模式不能显示一个无作用的入口。
+    if (type === "sv") {
+        showToolbar(vditor.toolbar.elements, ["task-toggle"]);
+        enableToolbar(vditor.toolbar.elements, ["task-toggle"]);
+    } else {
+        hideToolbar(vditor.toolbar.elements, ["task-toggle"]);
+        disableToolbar(vditor.toolbar.elements, ["task-toggle"]);
+    }
 
     if (type === "ir") {
         hideToolbar(vditor.toolbar.elements, ["both"]);

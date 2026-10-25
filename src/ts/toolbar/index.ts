@@ -25,6 +25,7 @@ import {Record} from "./Record";
 import {Redo} from "./Redo";
 import {hidePanel, toggleSubMenu} from "./setToolbar";
 import {Undo} from "./Undo";
+import {TaskToggle} from "./TaskToggle";
 import {Upload} from "./Upload";
 
 export class Toolbar {
@@ -161,6 +162,9 @@ export class Toolbar {
             case "link":
             case "table":
                 menuItemObj = new MenuItem(vditor, menuItem);
+                break;
+            case "task-toggle":
+                menuItemObj = new TaskToggle(vditor, menuItem);
                 break;
             case "emoji":
                 menuItemObj = new Emoji(vditor, menuItem);
