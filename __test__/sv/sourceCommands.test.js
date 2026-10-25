@@ -42,7 +42,7 @@ describe("SV commands through browser input", () => {
                     preview: {mode: "editor", delay: 0},
                     tab: "  ",
                     toolbar: ["headings", "undo", "redo", "bold", "italic", "list", "ordered-list",
-                        "check", "task-toggle", "outdent", "indent", "quote", "line", "link", "code", "table"],
+                        "check", "task-toggle", "outdent", "indent", "quote", "line", "link", "code", "code-language", "table"],
                     toolbarConfig: {revealOnFocus: true},
                     undoDelay: 500,
                     value: "",
@@ -269,9 +269,113 @@ describe("SV commands through browser input", () => {
             expect(await value()).toBe(tasks.replace(/\[ \]/g, "[x]"));
             await page.tap(button("undo"));
             expect(await value()).toBe(tasks);
+            const code = "```js\n甲😀 <wbr>\u00a0  \n```\n";
+            await page.evaluate(text => window.sourceCommandEditor.setFileText(text), code);
+            await select(code.indexOf("甲"), code.indexOf("\n```"), "backward");
+            await page.tap(button("code-language"));
+            expect(await page.$eval(".vditor-code-language input", e => document.activeElement === e)).toBe(true);
+            await page.$eval(".vditor-code-language input", e => { e.value = "python"; });
+            await page.tap(".vditor-code-language button");
+            expect(await value()).toBe(code.replace("```js", "```python"));
+            await page.tap(button("undo"));
+            expect(await value()).toBe(code);
         } finally {
             await page.setViewport({width: 800, height: 600, isMobile: false, hasTouch: false});
+            await mount();
         }
+    });
+
+    test("code language panel edits exact source and one reversible transaction", async () => {
+        const text = "> ~~~~  js  {.keep}\n> 甲😀 <wbr>\u00a0  \n> ~~~~\n\n";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        const start = text.indexOf("甲"), end = text.indexOf("\n> ~~~~");
+        await select(start, end, "backward");
+        await page.click(button("code-language"));
+        const input = ".vditor-code-language input";
+        expect(await page.$eval(input, e => document.activeElement === e && e.value === "js")).toBe(true);
+        await page.$eval(input, e => { e.value = "typescript"; });
+        await press("Enter");
+        const changed = text.replace("  js  ", "  typescript  ");
+        expect(await value()).toBe(changed);
+        expect(await selection()).toEqual([start + 8, end + 8, "backward"]);
+        expect(await page.$eval(textarea, e => document.activeElement === e)).toBe(true);
+        await press("Control", "z");
+        expect(await value()).toBe(text);
+        expect(await selection()).toEqual([start, end, "backward"]);
+        await press("Control", "y");
+        expect(await value()).toBe(changed);
+    });
+
+    test("code language keyboard entry, invalid input and Escape keep source selection", async () => {
+        const text = "```js\ncode\n```";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        await select(6, 10, "backward");
+        await press("Alt", "F10");
+        for (let i = 0; i < 15; i++) await press("Tab");
+        expect(await page.evaluate(() => document.activeElement.getAttribute("data-type"))).toBe("code-language");
+        await press("Enter");
+        await page.$eval(".vditor-code-language input", e => { e.value = "two words"; });
+        await press("Enter");
+        expect(await page.$eval(".vditor-code-language input", e => e.getAttribute("aria-invalid"))).toBe("true");
+        expect(await value()).toBe(text);
+        await press("Escape");
+        expect(await selection()).toEqual([6, 10, "backward"]);
+        expect(await page.$eval(textarea, e => document.activeElement === e)).toBe(true);
+        expect(await page.evaluate(() => window.sourceCommandInputs)).toBe(0);
+    });
+
+    test("code language outside fences, composition and disabled refuse edits", async () => {
+        await page.click(button("code-language"));
+        expect(await page.$eval(".vditor-code-language input", e => e.disabled)).toBe(true);
+        await press("Escape");
+        const text = "```js\ncode\n```";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        await select(6, 10);
+        await page.$eval(textarea, e => e.dispatchEvent(new CompositionEvent("compositionstart", {bubbles: true})));
+        await page.$eval(button("code-language"), e => e.click());
+        expect(await page.$eval(".vditor-code-language", e => e.style.display)).toBe("none");
+        await page.$eval(textarea, e => e.dispatchEvent(new CompositionEvent("compositionend", {bubbles: true})));
+        await page.evaluate(() => window.sourceCommandEditor.disabled());
+        await page.$eval(button("code-language"), e => e.click());
+        expect(await value()).toBe(text);
+    });
+
+    test("language panel composition and unchanged submit preserve Redo", async () => {
+        const text = "```js\ncode\n```";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        await select(6, 10);
+        await page.click(button("indent"));
+        const changed = await value();
+        await press("Control", "z");
+        await page.evaluate(() => { window.sourceCommandInputs = 0; });
+        await page.click(button("code-language"));
+        const input = ".vditor-code-language input";
+        await page.$eval(input, e => { e.value = "python"; e.dispatchEvent(new CompositionEvent("compositionstart", {bubbles: true})); });
+        await page.click(".vditor-code-language button");
+        expect(await value()).toBe(text);
+        await page.$eval(input, e => { e.dispatchEvent(new CompositionEvent("compositionend", {bubbles: true})); e.value = "js"; });
+        await press("Enter");
+        expect(await value()).toBe(text);
+        expect(await page.evaluate(() => window.sourceCommandInputs)).toBe(0);
+        await press("Control", "y");
+        expect(await value()).toBe(changed);
+    });
+
+    test("Tab and toolbar indentation protect quote/list containers and fence lines", async () => {
+        const text = "> - ~~~py\n>   print(1)\n>   ~~~\n";
+        await page.evaluate(text => window.sourceCommandEditor.setFileText(text), text);
+        await select(0, text.length, "backward");
+        await press("Tab");
+        const changed = text.replace("  print", "    print");
+        expect(await value()).toBe(changed);
+        await press("Shift", "Tab");
+        expect(await value()).toBe(text);
+        await page.click(button("indent"));
+        expect(await value()).toBe(changed);
+        await press("Control", "z");
+        expect(await value()).toBe(text);
+        await press("Control", "y");
+        expect(await value()).toBe(changed);
     });
 
     afterAll(async () => {

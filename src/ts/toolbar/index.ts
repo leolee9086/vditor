@@ -26,6 +26,7 @@ import {Redo} from "./Redo";
 import {hidePanel, toggleSubMenu} from "./setToolbar";
 import {Undo} from "./Undo";
 import {TaskToggle} from "./TaskToggle";
+import {CodeLanguage} from "./CodeLanguage";
 import {Upload} from "./Upload";
 
 export class Toolbar {
@@ -121,7 +122,8 @@ export class Toolbar {
             if (event.altKey && !event.ctrlKey && !event.metaKey && event.key === "F10") {
                 const button = this.element.querySelector<HTMLButtonElement>("button:not(:disabled):not(.vditor-menu--disabled)");
                 if (button) { event.preventDefault(); event.stopPropagation(); button.focus(); }
-            } else if (event.key === "Escape" && this.element.contains(document.activeElement)) {
+            } else if (event.key === "Escape" && this.element.contains(document.activeElement) &&
+                !(event.target instanceof Element && event.target.closest(".vditor-code-language"))) {
                 event.preventDefault(); event.stopPropagation();
                 hidePanel(vditor, ["subToolbar", "hint", "popover"]);
                 vditor[vditor.currentMode].element.focus();
@@ -162,6 +164,9 @@ export class Toolbar {
             case "link":
             case "table":
                 menuItemObj = new MenuItem(vditor, menuItem);
+                break;
+            case "code-language":
+                menuItemObj = new CodeLanguage(vditor, menuItem);
                 break;
             case "task-toggle":
                 menuItemObj = new TaskToggle(vditor, menuItem);

@@ -1,4 +1,10 @@
 window.VditorI18n = {
+  'code-language': 'Code language',
+  'code-language-apply': 'Apply language',
+  'code-language-empty': 'Leave empty for plain code',
+  'code-language-unavailable': 'Place the cursor or selection in one fenced code block',
+  'code-language-invalid': 'Use a single language identifier without whitespace',
+  'code-language-stale': 'Source changed; reopen this panel',
   'alignCenter': 'Center',
   'alignLeft': 'Left',
   'alignRight': 'Right',

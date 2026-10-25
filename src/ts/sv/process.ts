@@ -2,6 +2,7 @@ import {getMarkdown} from "../markdown/getMarkdown";
 import {accessLocalStorage} from "../util/compatibility";
 import {transformLines, type LineCommand} from "./lineCommands";
 import {toggleTasks} from "./taskCommands";
+import {indentCode, setCodeLanguage} from "./codeCommands";
 
 /** 完成状态属于编辑器，不要求文件适配器提供任务、UUID 或命令接口。 */
 export const processTaskToggle = (vditor: IVditor) => {
@@ -14,6 +15,21 @@ export const processTaskToggle = (vditor: IVditor) => {
     element.value = change.text;
     element.setSelectionRange(change.start, change.end, direction);
     finishCommand(vditor);
+};
+
+/** 语言输入框保留打开时的源选区，提交后由同一本地撤销事务恢复。 */
+export const processCodeLanguage = (vditor: IVditor, language: string, start: number, end: number,
+    direction: "forward" | "backward" | "none") => {
+    const element = vditor.sv.element;
+    if (vditor.currentMode !== "sv" || vditor.sv.composingLock || element.disabled) return false;
+    const change = setCodeLanguage(element.value, start, end, language);
+    if (change.text === element.value) return false;
+    element.setSelectionRange(start, end, direction);
+    if (!beginCommand(vditor)) return false;
+    element.value = change.text;
+    element.setSelectionRange(change.start, change.end, direction);
+    finishCommand(vditor);
+    return true;
 };
 
 const beginCommand = (vditor: IVditor) => {
@@ -118,11 +134,13 @@ export const processToolbar = (vditor: IVditor, actionBtn: Element, prefix: stri
     finishCommand(vditor);
 };
 export const processIndent = (vditor: IVditor, outdent: boolean) => {
-    if (!beginCommand(vditor)) return;
     const element = vditor.sv.element;
+    if (vditor.sv.composingLock || element.disabled) return;
     const direction = element.selectionDirection;
-    const change = transformLines(element.value, element.selectionStart, element.selectionEnd,
-        outdent ? "outdent" : "indent", "", vditor.options.tab);
+    const change = indentCode(element.value, element.selectionStart, element.selectionEnd, outdent, vditor.options.tab) ||
+        transformLines(element.value, element.selectionStart, element.selectionEnd,
+            outdent ? "outdent" : "indent", "", vditor.options.tab);
+    if (change.text === element.value || !beginCommand(vditor)) return;
     element.value = change.text;
     element.setSelectionRange(change.start, change.end, direction);
     finishCommand(vditor);

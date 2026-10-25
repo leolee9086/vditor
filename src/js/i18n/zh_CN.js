@@ -1,4 +1,10 @@
 window.VditorI18n = {
+  'code-language': '代码语言',
+  'code-language-apply': '应用语言',
+  'code-language-empty': '留空表示无语言',
+  'code-language-unavailable': '请将光标或选区放入同一个代码围栏',
+  'code-language-invalid': '请输入单个语言标识，不含空格或换行',
+  'code-language-stale': '原文已改变，请重新打开语言面板',
   'alignCenter': '居中',
   'alignLeft': '居左',
   'alignRight': '居右',

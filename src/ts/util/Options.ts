@@ -309,6 +309,11 @@ export class Options {
                 tipPosition: "n",
             },
             {
+                icon: '<svg><use xlink:href="#vditor-icon-code"></use></svg>',
+                name: "code-language",
+                tipPosition: "n",
+            },
+            {
                 hotkey: "⌘G",
                 icon:
                     '<svg><use xlink:href="#vditor-icon-inline-code"></use></svg>',
